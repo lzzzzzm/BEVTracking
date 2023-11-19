@@ -252,20 +252,20 @@ def main(args):
 
     pprint(data_info)
     # convert video to image and write anno info------------------------------------------------------
-    # for scene in scene_name:
-    #     scene_image_path = os.path.join(image_path, scene)
-    #     scene_anno_path = os.path.join(image_annotations_path, scene)
-    #     check_dir(scene_image_path)
-    #     check_dir(scene_anno_path)
-    #     for info in data_info[scene]:
-    #         video_image_path = os.path.join(scene_image_path, info['video'])
-    #         anno_image_path = os.path.join(scene_anno_path, info['video'])
-    #         check_dir(video_image_path)
-    #         check_dir(anno_image_path)
-    #         anno_path = info['annotations_path']
-    #         print('processing scene:{}, video:{}'.format(scene, info['video']))
-    #         anno_info = read_annotations(anno_path, info['frame_count'], info['frame shape'], args.crop_size)
-    #         convert_video_to_image(info['video_path'], video_image_path, anno_image_path, anno_info, args.split_fps, args.crop_size)
+    for scene in scene_name:
+        scene_image_path = os.path.join(image_path, scene)
+        scene_anno_path = os.path.join(image_annotations_path, scene)
+        check_dir(scene_image_path)
+        check_dir(scene_anno_path)
+        for info in data_info[scene]:
+            video_image_path = os.path.join(scene_image_path, info['video'])
+            anno_image_path = os.path.join(scene_anno_path, info['video'])
+            check_dir(video_image_path)
+            check_dir(anno_image_path)
+            anno_path = info['annotations_path']
+            print('processing scene:{}, video:{}'.format(scene, info['video']))
+            anno_info = read_annotations(anno_path, info['frame_count'], info['frame shape'], args.crop_size)
+            convert_video_to_image(info['video_path'], video_image_path, anno_image_path, anno_info, args.split_fps, args.crop_size)
 
     # covert to coco format ------------------------------------------------------
     coco_train_image_path = os.path.join(data_root, 'train')
@@ -300,18 +300,6 @@ def main(args):
                 img_path = os.path.join(images_dir, img_name)
                 ann_path = os.path.join(image_annotations_path, scene, num, img_name[:-4] + '.json')
                 anno_info = json.load(open(ann_path))
-                # vis
-                # img = cv.imread(img_path)
-                # bbox, category, track_id = [], [], []
-                # for i in range(len(anno_info)):
-                #     # if anno_info[i]['mask']:
-                #     bbox.append(anno_info[i]['bbox'])
-                #     category.append(anno_info[i]['category_id'])
-                #     track_id.append(anno_info[i]['track_id'])
-                #
-                # show_img = draw_bbox(img.copy(), bbox, category, track_id, box_type='xywh')
-                # cv.imshow('img', show_img)
-                # cv.waitKey(10)
 
                 if index < train_video_num:
                     train_name = '{}_{}_{}.jpg'.format(scene, num, train_index)
