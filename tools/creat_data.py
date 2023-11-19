@@ -5,8 +5,8 @@ import os
 import shutil
 
 import argparse
-from tqdm import tqdm
 from pprint import pprint
+
 
 """
     annotations format:
@@ -40,12 +40,14 @@ def parse_args():
     parser.add_argument(
         '--split_fps', type=int, default=10, help="the fps of clip video")
     parser.add_argument(
-        '--crop_size', type=int, default=50, help="crop image size to filter bbox out of image")
+        '--crop_size', type=int, default=125, help="crop image size to filter bbox out of image")
+    parser.add_argument(
+        '--vis_create_data', action='store_true', help="visualize the create data")
     args = parser.parse_args()
     return args
 
 
-def convert_video_to_image(video_path, image_path, anno_path, anno_info, split_fps, crop_size=50):
+def convert_video_to_image(video_path, image_path, anno_path, anno_info, split_fps, crop_size=50, vis_number=100):
     raw = cv.VideoCapture(video_path)
     index = 0
     write_index = 0
@@ -76,8 +78,16 @@ def convert_video_to_image(video_path, image_path, anno_path, anno_info, split_f
             json.dump(json_dict, open(write_anno_path, 'w'))
             # crop frame
             frame = frame[crop_size:-crop_size, crop_size:-crop_size]
+            if write_index < vis_number:
+                img = draw_bbox(frame.copy(), anno['bbox'], anno['category_id'], anno['track_id'])
+                if args.vis_create_data:
+                    cv.imshow('img', img)
+                    cv.waitKey(1)
+            elif write_index == vis_number:
+                cv.destroyWindow('img')
             cv.imwrite(write_image_path, frame)
-        index += 1
+
+        index = index + 1
 
 
 def check_dir(dir_path):
@@ -136,7 +146,9 @@ def read_annotations(annotations_path, max_frame, frame_shape, crop_size):
             if category_id == 3 or category_id == 4 or category_id == 5:
                 continue
 
+            # crop bbox
             bbox = [bbox[0]-crop_size, bbox[1]-crop_size, bbox[2]-crop_size, bbox[3]-crop_size]
+
             track_id_anno_info[track_id]['bbox'].append(bbox)
             track_id_anno_info[track_id]['category_id'].append(0)
             track_id_anno_info[track_id]['frame_id'].append(frame_id)
@@ -195,9 +207,8 @@ def draw_bbox(image, bboxs, category_ids, track_id):
         color = color_map[category_id]
         cv.rectangle(image, (bbox[0], bbox[1]), (bbox[2], bbox[3]), color, 2)
         # write id on bbox lefttop
-        cv.putText(image, str(track_id[i]), (bbox[0]+5, bbox[1]+5), cv.FONT_HERSHEY_SIMPLEX, 0.75, color)
+        cv.putText(image, str(track_id[i]), (bbox[0]+5, bbox[1]+5), cv.FONT_HERSHEY_SIMPLEX, 0.5, color)
     return image
-
 
 def main(args):
     data_root = './dataset/standford_campus'
@@ -248,19 +259,24 @@ def main(args):
             anno_path = info['annotations_path']
             print('processing scene:{}, video:{}'.format(scene, info['video']))
             anno_info = read_annotations(anno_path, info['frame_count'], info['frame shape'], args.crop_size)
-            raw = cv.VideoCapture(info['video_path'])
-            index = 0
-            while raw.isOpened():
-                ret, frame = raw.read()
-                frame = frame[args.crop_size:-args.crop_size, args.crop_size:-args.crop_size]
-                img = draw_bbox(frame, anno_info[index]['bbox'], anno_info[index]['category_id'], anno_info[index]['track_id'])
-                cv.imshow('img', img)
-                cv.waitKey(10)
-                index = index + 1
-                if index == 100:
-                    cv.destroyWindow('img')
-                    break
-            convert_video_to_image(info['video_path'], video_image_path, anno_image_path, anno_info, args.split_fps)
+            # raw = cv.VideoCapture(info['video_path'])
+            # index = 0
+            #
+            # if args.vis_create_data:
+            #     while raw.isOpened():
+            #         ret, frame = raw.read()
+            #         frame = frame[args.crop_size:-args.crop_size, args.crop_size:-args.crop_size]
+            #         img = draw_bbox(frame.copy(), anno_info[index]['bbox'], anno_info[index]['category_id'],
+            #                         anno_info[index]['track_id'])
+            #         cv.imshow('img', img)
+            #         cv.waitKey(30)
+            #
+            #         index = index + 1
+            #         if index == 500:
+            #             cv.destroyWindow('img')
+            #             break
+
+            convert_video_to_image(info['video_path'], video_image_path, anno_image_path, anno_info, args.split_fps, args.crop_size)
 
     # covert to coco format ------------------------------------------------------
     coco_train_image_path = os.path.join(data_root, 'train')
@@ -271,6 +287,7 @@ def main(args):
     train_coco_json_dict = {'annotations':[], 'images':[], 'categories':[{'id':0, 'name':'Pedestrian'}]}
     val_coco_json_dict = {'annotations':[], 'images':[], 'categories':[{'id':0, 'name':'Pedestrian'}]}
 
+    print('convert annotations to coco format-----------------------')
     for scene in scene_name:
         videos_path = os.path.join(videos_root, scene)
         videos = os.listdir(videos_path)
@@ -280,6 +297,7 @@ def main(args):
         train_index = 0
         val_index = 0
         for num in videos:
+            print('processing scene:{}, video:{}'.format(scene, num))
             images_dir = os.path.join(image_path, scene, num)
             images_name = os.listdir(images_dir)
             img_path = os.path.join(images_dir, images_name[0])
@@ -290,7 +308,7 @@ def main(args):
                 ann_path = os.path.join(image_annotations_path, scene, num, img_name[:-4] + '.json')
                 anno_info = json.load(open(ann_path))
                 if index < train_video_num:
-                    train_name = '{}.jpg'.format(train_index)
+                    train_name = '{}_{}_{}.jpg'.format(scene, num, train_index)
                     # rewrite the image_id
                     for i in range(len(anno_info)):
                         anno_info[i]['image_id'] = train_index
@@ -306,10 +324,10 @@ def main(args):
                     }
                     train_coco_json_dict['images'].append(images_info)
                 else:
-                    val_name = '{}.jpg'.format(val_index)
+                    val_name = '{}_{}_{}.jpg'.format(scene, num, val_index)
                     # rewrite the image_id
                     for i in range(len(anno_info)):
-                        anno_info[i]['image_id'] = train_index
+                        anno_info[i]['image_id'] = val_index
                         anno_info[i]['iscrowd'] = 0
                     val_index = val_index + 1
                     write_path = os.path.join(coco_val_image_path, val_name)
