@@ -10,7 +10,7 @@ def parse_args():
     parser.add_argument(
         '--vis_task', type=str, default='gt', help="visualization task, choose in [gt, det]")
     parser.add_argument(
-        '--vis_num', type=int, default=109, help="the number of visualization images, only work when vis_task is gt and det")
+        '--vis_num', type=int, default=100, help="the number of visualization images, only work when vis_task is gt and det")
     parser.add_argument(
         '--pred_result', type=str, default='bbox.json', help="the det prediction result file path")
     parser.add_argument(
@@ -26,8 +26,8 @@ def draw_bbox(img, bbox, color=(0, 255, 0), thickness=2):
     return img
 
 def vis_gt(args):
-    val_images_path = os.path.join('dataset', 'standford_campus', 'train')
-    val_anno_path = os.path.join('dataset', 'standford_campus', 'annotations', 'train.json')
+    val_images_path = os.path.join('dataset', 'standford_campus', 'val')
+    val_anno_path = os.path.join('dataset', 'standford_campus', 'annotations', 'val.json')
 
     coco = COCO(val_anno_path)
     ids = list(sorted(coco.imgs.keys()))
