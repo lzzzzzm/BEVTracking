@@ -7,7 +7,6 @@ import shutil
 import argparse
 from pprint import pprint
 
-
 """
     annotations format:
     Track ID, xmin, ymin, xmax, ymax, frame, lost, occluded, generated, label
@@ -63,7 +62,7 @@ def convert_video_to_image(video_path, image_path, anno_path, anno_info, split_f
             for i in range(len(anno['bbox'])):
                 w, h = anno['bbox'][i][2] - anno['bbox'][i][0], anno['bbox'][i][3] - anno['bbox'][i][1]
                 bbox_xywh = [anno['bbox'][i][0], anno['bbox'][i][1], w, h]
-                area = w*h
+                area = w * h
                 json_dict.append({
                     'area': area,
                     'bbox': bbox_xywh,
@@ -95,8 +94,10 @@ def check_dir(dir_path):
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
 
+
 def type_change(x):
     return int(float(x))
+
 
 def read_annotations(annotations_path, max_frame, frame_shape, crop_size):
     with open(annotations_path) as f:
@@ -105,11 +106,11 @@ def read_annotations(annotations_path, max_frame, frame_shape, crop_size):
 
     frame_id_anno_info = dict()
     for frame_id in range(max_frame):
-        frame_id_anno_info[frame_id] = {'bbox': [], 'category_id': [], 'track_id':[], 'mask':[], 'occulded':[]}
+        frame_id_anno_info[frame_id] = {'bbox': [], 'category_id': [], 'track_id': [], 'mask': [], 'occulded': []}
 
     track_id_anno_info = dict()
-    for track_id in range(max_track_id+1):
-        track_id_anno_info[track_id] = {'bbox': [], 'category_id': [], 'frame_id':[]}
+    for track_id in range(max_track_id + 1):
+        track_id_anno_info[track_id] = {'bbox': [], 'category_id': [], 'frame_id': []}
 
     # track id bool state
     track_id_keep = dict()
@@ -132,12 +133,14 @@ def read_annotations(annotations_path, max_frame, frame_shape, crop_size):
             track_id = int(line[0])
             occulded = int(line[7])
             # filter bbox out of image, center on the image
-            if bbox[0] < crop_size or bbox[1] < crop_size or bbox[2] > frame_shape[1]-crop_size or bbox[3] > frame_shape[0]-crop_size:
+            if bbox[0] < crop_size or bbox[1] < crop_size or bbox[2] > frame_shape[1] - crop_size or bbox[3] > \
+                    frame_shape[0] - crop_size:
                 if track_id_keep[track_id]['track_state']:
                     track_id_keep[track_id]['state_count'] = track_id_keep[track_id]['state_count'] + 1
                 track_id_keep[track_id]['track_state'] = False
 
-            if bbox[0] > crop_size and bbox[1] > crop_size and bbox[2] < frame_shape[1]-crop_size and bbox[3] < frame_shape[0]-crop_size:
+            if bbox[0] > crop_size and bbox[1] > crop_size and bbox[2] < frame_shape[1] - crop_size and bbox[3] < \
+                    frame_shape[0] - crop_size:
                 if track_id_keep[track_id]['state_count'] == 0:
                     track_id_keep[track_id]['track_state'] = True
 
@@ -148,7 +151,7 @@ def read_annotations(annotations_path, max_frame, frame_shape, crop_size):
                 continue
 
             # crop bbox
-            bbox = [bbox[0]-crop_size, bbox[1]-crop_size, bbox[2]-crop_size, bbox[3]-crop_size]
+            bbox = [bbox[0] - crop_size, bbox[1] - crop_size, bbox[2] - crop_size, bbox[3] - crop_size]
 
             track_id_anno_info[track_id]['bbox'].append(bbox)
             track_id_anno_info[track_id]['category_id'].append(0)
@@ -161,11 +164,11 @@ def read_annotations(annotations_path, max_frame, frame_shape, crop_size):
 
     # track id bool state
     track_id_keep = dict()
-    for track_id in range(max_track_id+1):
+    for track_id in range(max_track_id + 1):
         track_id_keep[track_id] = True
 
     # filter track id based on its static state
-    for track_id in range(max_track_id+1):
+    for track_id in range(max_track_id + 1):
         state_count = 0
         bboxs = track_id_anno_info[track_id]['bbox']
         box_frame = len(bboxs)
@@ -174,11 +177,11 @@ def read_annotations(annotations_path, max_frame, frame_shape, crop_size):
         x0min, y0min, x0max, y0max = bboxs[0]
         for bbox in bboxs[1:]:
             xmin, ymin, xmax, ymax = bbox
-            if np.abs(x0min - xmin) == 0 and np.abs(y0min - ymin) ==0 \
-                and np.abs(x0max - xmax) == 0 and np.abs(y0max - ymax) == 0:
+            if np.abs(x0min - xmin) == 0 and np.abs(y0min - ymin) == 0 \
+                    and np.abs(x0max - xmax) == 0 and np.abs(y0max - ymax) == 0:
                 state_count = state_count + 1
             x0min, y0min, x0max, y0max = xmin, ymin, xmax, ymax
-            if state_count > box_frame*0.98:
+            if state_count > box_frame * 0.98:
                 track_id_keep[track_id] = False
                 break
 
@@ -208,13 +211,14 @@ def draw_bbox(image, bboxs, category_ids, track_id, box_type='x1y1x2y2'):
             x1, y1, x2, y2 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
         elif box_type == 'xywh':
             x1, y1, w, h = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
-            x2, y2 = x1+w, y1+h
+            x2, y2 = x1 + w, y1 + h
         category_id = category_ids[i]
         color = color_map[category_id]
         cv.rectangle(image, (x1, y1), (x2, y2), color, 2)
         # write id on bbox lefttop
-        cv.putText(image, str(track_id[i]), (bbox[0]+5, bbox[1]+5), cv.FONT_HERSHEY_SIMPLEX, 0.5, color)
+        cv.putText(image, str(track_id[i]), (bbox[0] + 5, bbox[1] + 5), cv.FONT_HERSHEY_SIMPLEX, 0.5, color)
     return image
+
 
 def main(args):
     data_root = './dataset/standford_campus'
@@ -265,7 +269,8 @@ def main(args):
             anno_path = info['annotations_path']
             print('processing scene:{}, video:{}'.format(scene, info['video']))
             anno_info = read_annotations(anno_path, info['frame_count'], info['frame shape'], args.crop_size)
-            convert_video_to_image(info['video_path'], video_image_path, anno_image_path, anno_info, args.split_fps, args.crop_size)
+            convert_video_to_image(info['video_path'], video_image_path, anno_image_path, anno_info, args.split_fps,
+                                   args.crop_size)
 
     # covert to coco format ------------------------------------------------------
     coco_train_image_path = os.path.join(data_root, 'train')
@@ -273,8 +278,8 @@ def main(args):
     check_dir(coco_train_image_path)
     check_dir(coco_val_image_path)
 
-    train_coco_json_dict = {'annotations':[], 'images':[], 'categories':[{'id':0, 'name':'Pedestrian'}]}
-    val_coco_json_dict = {'annotations':[], 'images':[], 'categories':[{'id':0, 'name':'Pedestrian'}]}
+    train_coco_json_dict = {'annotations': [], 'images': [], 'categories': [{'id': 0, 'name': 'Pedestrian'}]}
+    val_coco_json_dict = {'annotations': [], 'images': [], 'categories': [{'id': 0, 'name': 'Pedestrian'}]}
 
     print('convert annotations to coco format-----------------------')
     train_index = 0
