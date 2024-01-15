@@ -75,21 +75,39 @@ pip install -r requirements.txt
 **step.2** run the following command to prepare the dataset
 
 ```bash
-python tools/create_data.py --vis_create_data
+python tools/create_data.py
 ```
 
 **step.3** run the following command to train the model
 
+For single GPU training:
 ```bash
 python tools/train.py -c configs/smalldet/ppyoloe_plus_sod_crn_l_40e_coco.yml --eval
 ```
+For multi GPU training:
+```bash
+python -m paddle.distributed.launch --gpus "0,1,2,3,4,5,6,7" tools/train.py -c configs/smalldet/ppyoloe_plus_sod_crn_l_40e_coco.yml --eval
+```
+In our config setting, we use 8 GPUs to train the model. If you use less GPUs, please change the learning rate and batch size in the config file.
+
+
+**step.4** run the following command to eval and Pedestrian Detection
+
+```bash
+python tools/eval.py -c configs/smalldet/ppyoloe_plus_sod_crn_l_40e_coco.yml -o weights=output/best_model/model.pdparams
+```
+
+To see the visualization results, you can run the following command and check the output folder.
+
+```bash
+python tools/vis_det.py --vis_task det --filter_score 0.3 
+``` 
 
 ### TODO LIST 
 
 - [x] Prepare Dataset
 - [x] Train and Evaluate Model
-- [ ] Pedestrian Detection
-- [ ] Filter Dataset
+- [x] Pedestrian Detection
 - [ ] Pedestrian Tracking Prediction
 - [ ] Pedestrian Tracking Prediction analysis
 - [ ] Filter mistakes annotations

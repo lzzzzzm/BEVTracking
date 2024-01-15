@@ -230,7 +230,7 @@ def main(args):
     scene_name = os.listdir(videos_root)
     for name in scene_name:
         data_info[name] = []
-
+    # read dataset info------------------------------------------------------
     for name in scene_name:
         videos_path = os.path.join(videos_root, name)
         videos = os.listdir(videos_path)
