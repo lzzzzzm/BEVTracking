@@ -8,7 +8,7 @@ from pycocotools.coco import COCO
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--vis_task', type=str, default='det', help="visualization task, choose in [gt, det]")
+        '--vis_task', type=str, default='gt', help="visualization task, choose in [gt, det]")
     parser.add_argument(
         '--vis_num', type=int, default=100, help="the number of visualization images, only work when vis_task is gt and det, -1 means all")
     parser.add_argument(

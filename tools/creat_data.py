@@ -256,21 +256,21 @@ def main(args):
 
     pprint(data_info)
     # convert video to image and write anno info------------------------------------------------------
-    # for scene in scene_name:
-    #     scene_image_path = os.path.join(image_path, scene)
-    #     scene_anno_path = os.path.join(image_annotations_path, scene)
-    #     check_dir(scene_image_path)
-    #     check_dir(scene_anno_path)
-    #     for info in data_info[scene]:
-    #         video_image_path = os.path.join(scene_image_path, info['video'])
-    #         anno_image_path = os.path.join(scene_anno_path, info['video'])
-    #         check_dir(video_image_path)
-    #         check_dir(anno_image_path)
-    #         anno_path = info['annotations_path']
-    #         print('processing scene:{}, video:{}'.format(scene, info['video']))
-    #         anno_info = read_annotations(anno_path, info['frame_count'], info['frame shape'], args.crop_size)
-    #         convert_video_to_image(info['video_path'], video_image_path, anno_image_path, anno_info, args.split_fps,
-    #                                args.crop_size)
+    for scene in scene_name:
+        scene_image_path = os.path.join(image_path, scene)
+        scene_anno_path = os.path.join(image_annotations_path, scene)
+        check_dir(scene_image_path)
+        check_dir(scene_anno_path)
+        for info in data_info[scene]:
+            video_image_path = os.path.join(scene_image_path, info['video'])
+            anno_image_path = os.path.join(scene_anno_path, info['video'])
+            check_dir(video_image_path)
+            check_dir(anno_image_path)
+            anno_path = info['annotations_path']
+            print('processing scene:{}, video:{}'.format(scene, info['video']))
+            anno_info = read_annotations(anno_path, info['frame_count'], info['frame shape'], args.crop_size)
+            convert_video_to_image(info['video_path'], video_image_path, anno_image_path, anno_info, args.split_fps,
+                                   args.crop_size)
 
     # covert to coco format ------------------------------------------------------
     coco_train_image_path = os.path.join(data_root, 'train')
