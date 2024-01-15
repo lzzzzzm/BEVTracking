@@ -69,13 +69,13 @@ def convert_video_to_image(video_path, image_path, anno_path, anno_info, split_f
                     'category_id': anno['category_id'][i],
                     'track_id': anno['track_id'][i],
                     'mask': anno['mask'][i],
-                    'image_id': write_index,
+                    'image_id': str(write_index).zfill(7),
                     'iscrowd': 0,
                     'id': i,
                 })
 
-            write_anno_path = os.path.join(anno_path, str(write_index) + '.json')
-            write_image_path = os.path.join(image_path, str(write_index) + '.jpg')
+            write_anno_path = os.path.join(anno_path, str(write_index).zfill(7) + '.json')
+            write_image_path = os.path.join(image_path, str(write_index).zfill(7) + '.jpg')
             write_index = write_index + 1
             json.dump(json_dict, open(write_anno_path, 'w'))
             if args.vis_create_data:

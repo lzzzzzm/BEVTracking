@@ -82,11 +82,11 @@ python tools/create_data.py
 
 For single GPU training:
 ```bash
-python tools/train.py -c configs/smalldet/ppyoloe_plus_sod_crn_l_40e_coco.yml --eval
+python tools/train.py -c configs/smalldet/ppyoloe_plus_sod_crn_l_40e_coco.yml --eval --use_vdl
 ```
 For multi GPU training:
 ```bash
-python -m paddle.distributed.launch --gpus "0,1,2,3,4,5,6,7" tools/train.py -c configs/smalldet/ppyoloe_plus_sod_crn_l_40e_coco.yml --eval
+python -m paddle.distributed.launch --gpus "0,1,2,3,4,5,6,7" tools/train.py -c configs/smalldet/ppyoloe_plus_sod_crn_l_40e_coco.yml --eval --use_vdl
 ```
 In our config setting, we use 8 GPUs to train the model. If you use less GPUs, please change the learning rate and batch size in the config file.
 

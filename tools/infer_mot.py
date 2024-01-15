@@ -79,7 +79,7 @@ def parse_args():
     parser.add_argument(
         "--draw_threshold",
         type=float,
-        default=0.5,
+        default=0.2,
         help="Threshold to reserve the result for visualization.")
     args = parser.parse_args()
     return args

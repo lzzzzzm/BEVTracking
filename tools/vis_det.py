@@ -18,11 +18,22 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def draw_bbox(img, bbox, color=(0, 255, 0), thickness=2):
+def draw_bbox(img, bbox, score=1.0, color=(0, 255, 0), thickness=2):
     # coco format bbox
     x1, y1, w, h = bbox
     x2, y2 = x1 + w, y1 + h
     cv.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), color, thickness)
+    # draw score
+    text_scale = max(1, img.shape[1] / 1600.)
+    text_thickness = 2
+    text = '{:.2f}'.format(float(score))
+    cv.putText(
+        img,
+        text, (int(x1), int(y1) + 10),
+        cv.FONT_HERSHEY_PLAIN,
+        text_scale, (0, 255, 255),
+        thickness=text_thickness)
+
     return img
 
 def vis_gt(args):
@@ -34,7 +45,6 @@ def vis_gt(args):
     for img_id in ids[:args.vis_num]:
         ann_ids = coco.getAnnIds(imgIds=img_id)
         targets = coco.loadAnns(ann_ids)
-
         path = coco.loadImgs(img_id)[0]['file_name']
         img_path = os.path.join(val_images_path, path)
         img = cv.imread(img_path)
@@ -62,7 +72,8 @@ def vis_det(args):
         img_result = list(filter(lambda x: x['score'] > args.filter_score, img_result))
         for result in img_result:
             bbox = result['bbox']
-            img = draw_bbox(img, bbox)
+            score = result['score']
+            img = draw_bbox(img, bbox, score)
         cv.imshow('img', img)
         cv.waitKey()
 
