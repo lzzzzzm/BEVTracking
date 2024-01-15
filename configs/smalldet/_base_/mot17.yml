@@ -1,4 +1,4 @@
-metric: COCO
+metric: MOT
 num_classes: 1
 
 # Detection Dataset for training

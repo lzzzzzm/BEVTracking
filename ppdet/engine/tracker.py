@@ -59,7 +59,7 @@ class Tracker(object):
 
         # build MOT data loader
         self.dataset = cfg['{}MOTDataset'.format(self.mode.capitalize())]
-
+        # self.dataset = cfg['{}Dataset'.format(self.mode.capitalize())]
         # build model
         self.model = create(cfg.architecture)
 
@@ -70,6 +70,7 @@ class Tracker(object):
                     m._momentum = 0.97  # 0.03 in pytorch
 
         anno_file = self.dataset.get_anno()
+        # anno_file = self.dataset['anno_path']
         clsid2catid, catid2name = get_categories(
             self.cfg.metric, anno_file=anno_file)
         self.ids2names = []
