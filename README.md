@@ -90,6 +90,11 @@ python -m paddle.distributed.launch --gpus "0,1,2,3,4,5,6,7" tools/train.py -c c
 ```
 In our config setting, we use 8 GPUs to train the model. If you use less GPUs, please change the learning rate and batch size in the config file.
 
+To visualize the training proces:
+
+```bash
+visualdl --logdir vdl_log_dir
+```
 
 **step.4** run the following command to eval and Pedestrian Detection
 

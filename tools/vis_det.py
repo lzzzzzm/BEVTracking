@@ -10,11 +10,15 @@ def parse_args():
     parser.add_argument(
         '--vis_task', type=str, default='det', help="visualization task, choose in [gt, det]")
     parser.add_argument(
-        '--vis_num', type=int, default=100, help="the number of visualization images, only work when vis_task is gt and det")
+        '--vis_num', type=int, default=100, help="the number of visualization images, only work when vis_task is gt and det, -1 means all")
     parser.add_argument(
         '--pred_result', type=str, default='bbox.json', help="the det prediction result file path")
     parser.add_argument(
         '--filter_score', type=float, default=0.3, help="the score threshold for visualization")
+    parser.add_argument(
+        '--show_img', type=bool, default=False, help="whether to show image")
+    parser.add_argument(
+        '--write_img', type=bool, default=True, help="whether to wirte results")
     args = parser.parse_args()
     return args
 
@@ -56,12 +60,18 @@ def vis_gt(args):
         cv.waitKey()
 
 def vis_det(args):
+    out_dir = 'output/det'
+    if not os.path.exists(out_dir):
+        os.mkdir(out_dir)
+
+
     pred_result = json.load(open(args.pred_result))
     val_images_path = os.path.join('dataset', 'standford_campus', 'val')
     # sort pred_result by image_id
     pred_result = sorted(pred_result, key=lambda x: x['image_id'])
     val_anno_path = os.path.join('dataset', 'standford_campus', 'annotations', 'val.json')
     coco = COCO(val_anno_path)
+
     for img_id in range(args.vis_num):
         path = coco.loadImgs(img_id+1)[0]['file_name']
         img_path = os.path.join(val_images_path, path)
@@ -74,8 +84,15 @@ def vis_det(args):
             bbox = result['bbox']
             score = result['score']
             img = draw_bbox(img, bbox, score)
-        cv.imshow('img', img)
-        cv.waitKey()
+
+        if args.show_img:
+            cv.imshow('img', img)
+            cv.waitKey()
+
+        if args.write_img:
+            print('writing:', path)
+            wirte_path = os.path.join(out_dir, path)
+            cv.imwrite(wirte_path, img)
 
 
 

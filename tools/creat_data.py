@@ -35,7 +35,7 @@ categories_map = {
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--split_ratio', type=float, default=0.2, help="train and val split ratio")
+        '--split_ratio', type=float, default=0.33, help="train and val split ratio")
     parser.add_argument(
         '--split_fps', type=int, default=10, help="the fps of clip video")
     parser.add_argument(
@@ -256,21 +256,21 @@ def main(args):
 
     pprint(data_info)
     # convert video to image and write anno info------------------------------------------------------
-    for scene in scene_name:
-        scene_image_path = os.path.join(image_path, scene)
-        scene_anno_path = os.path.join(image_annotations_path, scene)
-        check_dir(scene_image_path)
-        check_dir(scene_anno_path)
-        for info in data_info[scene]:
-            video_image_path = os.path.join(scene_image_path, info['video'])
-            anno_image_path = os.path.join(scene_anno_path, info['video'])
-            check_dir(video_image_path)
-            check_dir(anno_image_path)
-            anno_path = info['annotations_path']
-            print('processing scene:{}, video:{}'.format(scene, info['video']))
-            anno_info = read_annotations(anno_path, info['frame_count'], info['frame shape'], args.crop_size)
-            convert_video_to_image(info['video_path'], video_image_path, anno_image_path, anno_info, args.split_fps,
-                                   args.crop_size)
+    # for scene in scene_name:
+    #     scene_image_path = os.path.join(image_path, scene)
+    #     scene_anno_path = os.path.join(image_annotations_path, scene)
+    #     check_dir(scene_image_path)
+    #     check_dir(scene_anno_path)
+    #     for info in data_info[scene]:
+    #         video_image_path = os.path.join(scene_image_path, info['video'])
+    #         anno_image_path = os.path.join(scene_anno_path, info['video'])
+    #         check_dir(video_image_path)
+    #         check_dir(anno_image_path)
+    #         anno_path = info['annotations_path']
+    #         print('processing scene:{}, video:{}'.format(scene, info['video']))
+    #         anno_info = read_annotations(anno_path, info['frame_count'], info['frame shape'], args.crop_size)
+    #         convert_video_to_image(info['video_path'], video_image_path, anno_image_path, anno_info, args.split_fps,
+    #                                args.crop_size)
 
     # covert to coco format ------------------------------------------------------
     coco_train_image_path = os.path.join(data_root, 'train')
@@ -296,6 +296,7 @@ def main(args):
             else:
                 print('processing val scene:{}, video:{}'.format(scene, num))
 
+
             images_dir = os.path.join(image_path, scene, num)
             images_name = os.listdir(images_dir)
             img_path = os.path.join(images_dir, images_name[0])
@@ -307,7 +308,7 @@ def main(args):
                 anno_info = json.load(open(ann_path))
 
                 if index < train_video_num:
-                    train_name = '{}_{}_{}.jpg'.format(scene, num, train_index)
+                    train_name = '{}_{}_{}.jpg'.format(scene, num, str(train_index).zfill(7))
                     # rewrite the image_id
                     for i in range(len(anno_info)):
                         anno_info[i]['image_id'] = train_index
@@ -324,7 +325,7 @@ def main(args):
                     train_index = train_index + 1
                     train_coco_json_dict['images'].append(images_info)
                 else:
-                    val_name = '{}_{}_{}.jpg'.format(scene, num, val_index)
+                    val_name = '{}_{}_{}.jpg'.format(scene, num, str(val_index).zfill(7))
                     # rewrite the image_id
                     for i in range(len(anno_info)):
                         anno_info[i]['image_id'] = val_index
