@@ -47,8 +47,7 @@ We filter the dataset and remove the above mistakes, also, we add the miss boxes
 shown as below:
 
 <center class="half">
-<img src="figures/ori_vis.gif" width=100/>
-<img src="figures/filter_vis.gif" width=100/>
+<img src="figures/ori_vis.gif" width=100/><img src="figures/filter_vis.gif" width=100/>
 </center>
 
 left is the original dataset, right is the filtered dataset.
