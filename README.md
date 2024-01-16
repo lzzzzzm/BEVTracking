@@ -46,9 +46,7 @@ We filter the dataset and remove the above mistakes.
 
 shown as below:
 
-<video id="video" controls="" preload="none" poster="封面">
-      <source id="mp4" src="figures/ori_vis.mp4" type="video/mp4">
-</videos>
+<video src="figures/ori_vis.mp4" controls="controls" width="500" height="300"></video>
 
 
 ### Installation
