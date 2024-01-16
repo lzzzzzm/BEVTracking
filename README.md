@@ -46,11 +46,23 @@ We filter the dataset and remove the above mistakes, also, we add the miss boxes
 
 shown as below:
 
-<center class="half">
-<img src="figures/ori_vis.gif" height="180px" width="180px"/><img src="figures/filter_vis.gif" height="180px" width="180px"/>
-</center>
+[//]: # (<center class="half">)
 
-left is the original dataset, right is the filtered dataset.
+[//]: # (<img src="figures/ori_vis.gif" height="180px" width="256px"/>  <img src="figures/filter_vis.gif" height="180px" width="256px"/>)
+
+[//]: # (</center>)
+
+<table>
+  <tr>
+    <td>Ori Dataset annotation</td>
+     <td>Filter Dataset annotation</td>
+  </tr>
+  <tr>
+    <td><img src="figures/ori_vis.gif" width=256 height=256></td>
+    <td><img src="figures/filter_vis.gif" width=256 height=256></td>
+  </tr>
+ </table>
+
 
 ### Installation
 
