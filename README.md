@@ -52,14 +52,14 @@ shown as below:
 
 [//]: # (</center>)
 
-<table>
-  <tr>
-    <td>Ori Dataset annotation</td>
-     <td>Filter Dataset annotation</td>
+<table align="center">
+  <tr align="center">
+    <td align="center">Ori Dataset annotation</td>
+    <td align="center">Filter Dataset annotation</td>
   </tr>
-  <tr>
-    <td><img src="figures/ori_vis.gif" width=256 height=256></td>
-    <td><img src="figures/filter_vis.gif" width=256 height=256></td>
+  <tr align="center">
+    <td align="center"><img src="figures/ori_vis.gif" width=256 height=256></td>
+    <td align="center"><img src="figures/filter_vis.gif" width=256 height=256></td>
   </tr>
  </table>
 
