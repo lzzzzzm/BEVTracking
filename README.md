@@ -42,7 +42,14 @@ there are some mistake in the annotations:
 4. some boxes look like waiting for the people to come in
 5. when people leave the image, the box is still there, it may be common in the mot task, but not in the detection task.
 
-when we create dataset, we only sovle the first problem, we just remove the boxes which are out of the image.
+We filter the dataset and remove the above mistakes.
+
+shown as below:
+
+<video id="video" controls="" preload="none" poster="封面">
+      <source id="mp4" src="figures/ori_vis.mp4" type="video/mp4">
+</videos>
+
 
 ### Installation
 
