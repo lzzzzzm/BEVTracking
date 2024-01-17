@@ -6,6 +6,8 @@ import shutil
 
 import argparse
 from pprint import pprint
+from PIL import Image, ImageDraw, ImageFont
+from ppdet.utils.download import get_path
 
 """
     annotations format:
@@ -147,7 +149,7 @@ def read_annotations(annotations_path, max_frame, frame_shape, crop_size):
             if not track_id_keep[track_id]['track_state']:
                 continue
 
-            if category_id == 3 or category_id == 4 or category_id == 5:
+            if category_id == 0 or category_id == 2 or category_id == 3 or category_id == 4 or category_id == 5:
                 continue
 
             # crop bbox
@@ -198,7 +200,7 @@ def read_annotations(annotations_path, max_frame, frame_shape, crop_size):
 
 def draw_bbox(image, bboxs, category_ids, track_id, box_type='x1y1x2y2'):
     color_map = {
-        0: (0, 255, 0),
+        0: (0, 0, 0),
         1: (0, 0, 255),
         2: (255, 0, 0),
         3: (255, 255, 0),
@@ -214,7 +216,7 @@ def draw_bbox(image, bboxs, category_ids, track_id, box_type='x1y1x2y2'):
             x2, y2 = x1 + w, y1 + h
         category_id = category_ids[i]
         color = color_map[category_id]
-        cv.rectangle(image, (x1, y1), (x2, y2), color, 2)
+        cv.rectangle(image, (x1, y1), (x2, y2), color, 1)
         # write id on bbox lefttop
         cv.putText(image, str(track_id[i]), (bbox[0] + 5, bbox[1] + 5), cv.FONT_HERSHEY_SIMPLEX, 0.5, color)
     return image
@@ -248,7 +250,7 @@ def main(args):
                 'frame shape': frame.shape[:2],
                 'frame_count': int(frame_count)
             })
-    image_path = os.path.join(data_root, 'images')
+    image_path = os.path.join(data_root, 'ori_images')
     image_annotations_path = os.path.join(data_root, 'image_annotations')
 
     check_dir(image_path)
@@ -271,7 +273,7 @@ def main(args):
             anno_info = read_annotations(anno_path, info['frame_count'], info['frame shape'], args.crop_size)
             convert_video_to_image(info['video_path'], video_image_path, anno_image_path, anno_info, args.split_fps,
                                    args.crop_size)
-
+    #
     # covert to coco format ------------------------------------------------------
     coco_train_image_path = os.path.join(data_root, 'train')
     coco_val_image_path = os.path.join(data_root, 'val')
