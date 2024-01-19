@@ -113,6 +113,10 @@ def plot_tracking_dict(image,
             x1, y1, w, h = tlwh
             intbox = tuple(map(int, (x1, y1, x1 + w, y1 + h)))
             obj_id = int(obj_ids[i])
+            center_x = (intbox[0] + intbox[2]) // 2
+            center_y = (intbox[1] + intbox[3]) // 2
+            center_x = int(center_x)
+            center_y = int(center_y)
 
             id_text = '{}'.format(int(obj_id))
             if ids2names != []:
@@ -128,6 +132,11 @@ def plot_tracking_dict(image,
                 intbox[2:4],
                 color=color,
                 thickness=line_thickness)
+            cv2.circle(im,
+                       (center_x, center_y),
+                       radius,
+                       color=color,
+                       thickness=line_thickness)
             cv2.putText(
                 im,
                 id_text, (intbox[0], intbox[1] - 10),
@@ -143,4 +152,126 @@ def plot_tracking_dict(image,
                     cv2.FONT_HERSHEY_PLAIN,
                     text_scale, (0, 255, 255),
                     thickness=text_thickness)
+    return im
+
+def plot_object_pred_dict(image,
+                       num_classes,
+                       tlwhs_dict,
+                       obj_ids_dict,
+                       scores_dict,
+                       frame_id=0,
+                       fps=0.,
+                       ids2names=[],
+                       circle_line=None):
+    im = np.ascontiguousarray(np.copy(image))
+    im_h, im_w = im.shape[:2]
+
+    top_view = np.zeros([im_w, im_w, 3], dtype=np.uint8) + 255
+
+    text_scale = max(1, image.shape[1] / 1600.)
+    text_thickness = 2
+    line_thickness = max(1, int(image.shape[1] / 500.))
+
+    radius = max(1, int(im_w / 140.))
+    radius = 4
+
+    tlwhs = tlwhs_dict
+    obj_ids = obj_ids_dict
+    scores = scores_dict
+    cv2.putText(
+        im,
+        'frame: %d fps: %.2f num: %d' % (frame_id, fps, len(tlwhs)),
+        (0, int(15 * text_scale)),
+        cv2.FONT_HERSHEY_PLAIN,
+        text_scale, (0, 0, 255),
+        thickness=2)
+
+    for i, tlwh in enumerate(tlwhs):
+        x1, y1, w, h = tlwh
+        intbox = tuple(map(int, (x1, y1, x1 + w, y1 + h)))
+        obj_id = int(obj_ids[i])
+        center_x = (intbox[0] + intbox[2]) // 2
+        center_y = (intbox[1] + intbox[3]) // 2
+        center_x = int(center_x)
+        center_y = int(center_y)
+
+        id_text = '{}'.format(int(obj_id))
+
+        _line_thickness = 1 if obj_id <= 0 else line_thickness
+        color = get_color(abs(obj_id))
+
+        if circle_line is None:
+            radius = 9
+            line_thickness=1
+            cv2.circle(im,
+                       (center_x, center_y),
+                       radius,
+                       color=color,
+                       thickness=line_thickness)
+        else:
+            radius = 4
+            cv2.circle(im,
+                       (center_x, center_y),
+                       radius,
+                       color=color,
+                       thickness=-1)
+
+    return im
+
+
+def plot_object_center_dict(image,
+                       num_classes,
+                       center_dict,
+                       obj_ids_dict,
+                       scores_dict,
+                       frame_id=0,
+                       fps=0.,
+                       ids2names=[],
+                       circle_line=None):
+    im = np.ascontiguousarray(np.copy(image))
+    im_h, im_w = im.shape[:2]
+
+    top_view = np.zeros([im_w, im_w, 3], dtype=np.uint8) + 255
+
+    text_scale = max(1, image.shape[1] / 1600.)
+    text_thickness = 2
+    line_thickness = max(1, int(image.shape[1] / 500.))
+
+    radius = max(1, int(im_w / 140.))
+    radius = 4
+
+    centers = center_dict
+    obj_ids = obj_ids_dict
+    scores = scores_dict
+    cv2.putText(
+        im,
+        'frame: %d fps: %.2f num: %d' % (frame_id, fps, len(centers)),
+        (0, int(15 * text_scale)),
+        cv2.FONT_HERSHEY_PLAIN,
+        text_scale, (0, 0, 255),
+        thickness=2)
+
+    for i, center in enumerate(centers):
+        x, y = center
+
+        obj_id = int(obj_ids[i])
+
+        center_x = int(x)
+        center_y = int(y)
+
+        id_text = '{}'.format(int(obj_id))
+
+        _line_thickness = 1 if obj_id <= 0 else line_thickness
+        color = get_color(abs(obj_id))
+
+
+        radius = 8
+        line_thickness=2
+        cv2.circle(im,
+                   (center_x, center_y),
+                   radius,
+                   color=color,
+                   thickness=line_thickness)
+
+
     return im

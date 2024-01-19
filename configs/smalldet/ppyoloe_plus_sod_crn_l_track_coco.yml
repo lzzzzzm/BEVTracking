@@ -42,8 +42,12 @@ PPYOLOEHead:
 # BYTETracker
 JDETracker:
   use_byte: True
-  match_thres: 0.9
-  conf_thres: 0.2
-  low_conf_thres: 0.1
-  min_box_area: 100
-  vertical_ratio: 1.6 # for pedestrian
+  match_thres: 0.5
+  det_thresh: 0.25
+  conf_thres: 0.25
+  tracked_thresh: 0.25
+  low_conf_thres: 0.10
+  min_box_area: 50
+#  vertical_ratio: 1.6 # for pedestrian
+  vertical_ratio: -1 # for pedestrian
+  track_buffer: 100

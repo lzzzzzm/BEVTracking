@@ -32,8 +32,7 @@ Cart：3
 Car：4
 Bus：5
 ```
-in this project, we only evaluate the performance of pedestrian detection
-so we map the biker, skater to pedestrian.
+in this project, we only evaluate the performance of pedestrian detection.
 
 there are some mistake in the annotations:
 1. some boxes are out of the image
@@ -102,11 +101,11 @@ python tools/create_data.py
 
 For single GPU training:
 ```bash
-python tools/train.py -c configs/smalldet/ppyoloe_plus_sod_crn_l_40e_coco.yml --eval --use_vdl
+python tools/train.py -c configs/smalldet/ppyoloe_plus_sod_crn_l_40e_coco.yml --eval --use_vdl True
 ```
 For multi GPU training:
 ```bash
-python -m paddle.distributed.launch --gpus "0,1,2,3,4,5,6,7" tools/train.py -c configs/smalldet/ppyoloe_plus_sod_crn_l_40e_coco.yml --eval --use_vdl
+python -m paddle.distributed.launch --gpus "0,1,2,3,4,5,6,7" tools/train.py -c configs/smalldet/ppyoloe_plus_sod_crn_l_40e_coco.yml --eval --use_vdl True
 ```
 In our config setting, we use 8 GPUs to train the model. If you use less GPUs, please change the learning rate and batch size in the config file.
 
@@ -128,14 +127,31 @@ To see the visualization results, you can run the following command and check th
 python tools/vis_det.py --vis_task det --filter_score 0.3 
 ``` 
 
+**step.5** Export the model
+
+```bash
+python tools/export_model.py -c configs/smalldet/ppyoloe_plus_sod_crn_l_40e_coco.yml --output_dir=./inference_model -o weights=output/best_model
+``` 
+
+**step.6** Infer Pedestrain Detection
+
+```bash
+python deploy/python/infer.py --model_dir=output_inference/ppyoloe_plus_sod_crn_l_40e_coco --image_dir=$image_dir$ --device=GPU --threshold=0.25 --output_dir out_vis --save_results
+``` 
+
+**step.7** Infer Pedestrain Prediction
+
+```bash
+--config=configs/smalldet/ppyoloe_plus_sod_crn_l_track_coco.yml -o weights=output/best_model/model.pdparams --image_dir $image_dir$ --save_images --scaled True --det_results_dir out_vis --output_dir out_mot --given_frame 10 --pred_frame 10
+``` 
+
 ### TODO LIST 
 
 - [x] Prepare Dataset
 - [x] Train and Evaluate Model
 - [x] Pedestrian Detection
-- [ ] Pedestrian Tracking Prediction
-- [ ] Pedestrian Tracking Prediction analysis
-- [ ] Filter mistakes annotations
+- [x] Pedestrian Tracking Prediction
+- [x] Pedestrian Tracking Prediction analysis
 
 
 ### Citation

@@ -16,7 +16,7 @@ import os
 import cv2
 import time
 import numpy as np
-from .visualization import plot_tracking_dict, plot_tracking
+from .visualization import plot_tracking_dict, plot_tracking, plot_object_pred_dict, plot_object_center_dict
 
 __all__ = [
     'MOTTimer',
@@ -184,6 +184,110 @@ def save_vis_results(data,
     if save_dir is not None:
         cv2.imwrite(
             os.path.join(save_dir, '{:05d}.jpg'.format(frame_id)), online_im)
+
+def save_object_pred_results(data,
+                     frame_id,
+                     online_ids,
+                     online_tlwhs,
+                     online_scores,
+                     average_time,
+                     show_image,
+                     save_dir,
+                     num_classes=1,
+                     ids2names=[],
+                     results=None,
+                     give_frame=None,
+                     pred_frame=None):
+    if show_image or save_dir is not None:
+        assert 'ori_image' in data
+        img0 = data['ori_image'].numpy()[0]
+        if online_ids is None:
+            online_im = img0
+        else:
+            results = results[0]
+            results_len = len(results)
+            if results_len > pred_frame+give_frame:
+                pred_results = results[results_len-pred_frame-give_frame:]
+            else:
+                pred_results = results
+            circle_line = -1
+            for index, result in enumerate(pred_results):
+                online_tlwhs = result[1]
+                online_scores = result[2]
+                online_ids = result[3]
+                if index < give_frame:
+                    img0 = plot_object_pred_dict(
+                        img0,
+                        num_classes,
+                        online_tlwhs,
+                        online_ids,
+                        online_scores,
+                        frame_id=frame_id,
+                        fps=1. / average_time,
+                        ids2names=ids2names,
+                        circle_line=circle_line
+                    )
+                else:
+                    img0 = plot_object_center_dict(
+                        img0,
+                        num_classes,
+                        online_tlwhs,
+                        online_ids,
+                        online_scores,
+                        frame_id=frame_id,
+                        fps=1. / average_time,
+                        ids2names=ids2names,
+                        circle_line=circle_line
+                    )
+
+            online_im = img0
+
+
+    if save_dir is not None:
+        cv2.imwrite(
+            os.path.join(save_dir, '{:05d}.jpg'.format(frame_id)), online_im)
+
+def plot_center_pint(data,
+                     frame_id,
+                     online_ids,
+                     online_center,
+                     online_scores,
+                     average_time,
+                     show_image,
+                     save_dir,
+                     num_classes=1,
+                     ids2names=[],
+                     results=None,
+                     give_frame=None,
+                     pred_frame=None):
+    if show_image or save_dir is not None:
+        assert 'ori_image' in data
+        img0 = data['ori_image'].numpy()[0]
+        if online_ids is None:
+            online_im = img0
+        else:
+            results = results[0]
+
+        for index, result in enumerate(results):
+            online_center = result[1]
+            online_scores = result[2]
+            online_ids = result[3]
+            img0 = plot_object_center_dict(
+                img0,
+                num_classes,
+                online_center,
+                online_ids,
+                online_scores,
+                frame_id=frame_id,
+                fps=1. / average_time,
+                ids2names=ids2names,
+            )
+        online_im = img0
+
+    # if save_dir is not None:
+    #     cv2.imwrite(
+    #         os.path.join(save_dir, '{:05d}.jpg'.format(frame_id)), online_im)
+
 
 
 def load_det_results(det_file, num_frames):

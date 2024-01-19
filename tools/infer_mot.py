@@ -81,6 +81,16 @@ def parse_args():
         type=float,
         default=0.2,
         help="Threshold to reserve the result for visualization.")
+    parser.add_argument(
+        "--given_frame",
+        type=int,
+        default=12,
+        help="Threshold to reserve the result for visualization.")
+    parser.add_argument(
+        "--pred_frame",
+        type=int,
+        default=8,
+        help="Threshold to reserve the result for visualization.")
     args = parser.parse_args()
     return args
 
@@ -108,7 +118,9 @@ def run(FLAGS, cfg):
         show_image=FLAGS.show_image,
         scaled=FLAGS.scaled,
         det_results_dir=FLAGS.det_results_dir,
-        draw_threshold=FLAGS.draw_threshold)
+        draw_threshold=FLAGS.draw_threshold,
+        given_frame=FLAGS.given_frame,
+        pred_frame=FLAGS.pred_frame)
 
 
 def main():

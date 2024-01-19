@@ -28,7 +28,7 @@ from collections import defaultdict
 from ppdet.core.workspace import create
 from ppdet.utils.checkpoint import load_weight, load_pretrain_weight
 from ppdet.modeling.mot.utils import Detection, get_crops, scale_coords, clip_box
-from ppdet.modeling.mot.utils import MOTTimer, load_det_results, write_mot_results, save_vis_results
+from ppdet.modeling.mot.utils import MOTTimer, load_det_results, write_mot_results, save_vis_results, save_object_pred_results, plot_center_pint
 from ppdet.modeling.mot.tracker import JDETracker, CenterTracker
 from ppdet.modeling.mot.tracker import DeepSORTTracker, OCSORTTracker, BOTSORTTracker
 from ppdet.modeling.architectures import YOLOX
@@ -47,6 +47,106 @@ MOT_ARCH_SDE = MOT_ARCH[2:4]
 MOT_DATA_TYPE = ['mot', 'mcmot', 'kitti']
 
 __all__ = ['Tracker']
+
+from filterpy.kalman import KalmanFilter
+
+
+import numpy as np
+from filterpy.kalman import KalmanFilter
+
+
+class Queue(object):
+    def __init__(self, buffer):  # 初始化空队列
+        self.list = []
+        self.buffer=buffer
+
+    def push(self, item):  # 入队
+        self.list.insert(0,item)   #头进
+        if self.size() == self.buffer:
+            self.pop()
+
+    def pop(self):  # 出队
+        return self.list.pop()  # 尾出
+
+    def is_empty(self):  # 判断是否为空
+        return self.list == []
+
+    def size(self):  # 判断长度
+        return len(self.list)
+
+    def get(self):
+        return self.list[0] # 返回头
+
+    def __str__(self):  # 遍历所有队列当中的队员
+        return "queue(%r)" % self.list
+
+
+
+class KalmanPointTracker(object):
+
+    def __init__(self, point, history_buffer=10):
+        # 定义恒速模型，4个状态变量，2个状态输入
+        self.kf = KalmanFilter(dim_x=4, dim_z=2)
+
+        # 状态向量 X = [点的横坐标，点的纵坐标, 点的vx速度，点的vy速度]
+        # 这里假设是x和y都是匀速运动
+        self.kf.F = np.array([
+            [1, 0, 1, 0],
+            [0, 1, 0, 1],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]
+        ])
+
+        # 观测矩阵
+        self.kf.H = np.array([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+        ])
+
+        # P是先验估计的协方差，对不可观察的初速度，给予高度不确定性
+        self.kf.P = np.array([
+            [10, 0, 0, 0],
+            [0, 10, 0, 0],
+            [0, 0, 1000, 0],
+            [0, 0, 0, 1000]
+        ])
+
+        # R是测量噪声的协方差矩阵，即真实值与测量值差的协方差
+        self.kf.R = np.array([
+            [10, 0],
+            [0, 10]
+        ])
+
+        # Q是系统状态变换误差的协方差, 一般认为系统误差很小
+        self.kf.Q = np.array([
+            [0.01, 0, 0, 0],
+            [0, 0.01, 0, 0],
+            [0, 0, 0.01, 0],
+            [0, 0, 0, 0.01]
+        ])
+
+        # Kalman滤波器初始化时，直接用第一次观测结果赋值状态信息
+        self.kf.x[0:2] = point
+        # 存储历史时刻的Kalman状态
+        self.history = Queue(history_buffer)
+        # self.history_buffer = history_buffer
+
+    def update(self, point):
+        # 调用更新后，keep history_buffer
+
+        # self.history = self.history[]
+        # 直接调用包里的更新参数
+        self.kf.update(point)
+
+    def predict(self):
+        # 库自带预测函数
+        self.kf.predict()
+        # 更新历史信息
+        # self.history.append(self.kf.x)
+        self.history.push(self.kf.x[:2])
+
+        # return self.history[-1]
+        return self.history.get()
 
 
 class Tracker(object):
@@ -267,6 +367,7 @@ class Tracker(object):
         self.model.eval()
         if use_reid:
             self.model.reid.eval()
+        use_detector = False
         if not use_detector:
             dets_list = load_det_results(det_file, len(dataloader))
             logger.info('Finish loading detection results file {}.'.format(
@@ -303,6 +404,18 @@ class Tracker(object):
                         (bbox_tlwh[:, 0:2],
                          bbox_tlwh[:, 2:4] + bbox_tlwh[:, 0:2]),
                         axis=1)
+                    if not scaled:
+                        # Note: scaled=False only in JDE YOLOv3 or other detectors
+                        # with LetterBoxResize and JDEBBoxPostProcess.
+                        #
+                        # 'scaled' means whether the coords after detector outputs
+                        # have been scaled back to the original image, set True
+                        # in general detector, set False in JDE YOLOv3.
+                        pred_bboxes = scale_coords(pred_bboxes,
+                                                   input_shape, im_shape,
+                                                   scale_factor)
+                    pred_dets_old = np.concatenate(
+                        (pred_cls_ids, pred_scores, pred_bboxes), axis=1)
                 else:
                     logger.warning(
                         'Frame {} has not object, try to modify score threshold.'.
@@ -483,6 +596,264 @@ class Tracker(object):
 
         return results, frame_id, timer.average_time, timer.calls
 
+    def _eval_object_pred(self,
+                          dataloader,
+                          save_dir=None,
+                          show_image=False,
+                          frame_rate=30,
+                          seq_name='',
+                          scaled=False,
+                          det_file='',
+                          draw_threshold=0,
+                          given_frame=10,
+                          pred_frame=10,
+                          ):
+        if save_dir:
+            if not os.path.exists(save_dir): os.makedirs(save_dir)
+        use_detector = False if not self.model.detector else True
+        use_reid = hasattr(self.model, 'reid')
+        if use_reid and self.model.reid is not None:
+            use_reid = True
+        else:
+            use_reid = False
+
+        timer = MOTTimer()
+        results = defaultdict(list)
+        total_pred_results = defaultdict(list)
+        total_ADE = defaultdict(list)
+        frame_id = 0
+        self.status['mode'] = 'track'
+        self.model.eval()
+        tracker = self.model.tracker
+        for step_id, data in enumerate(tqdm(dataloader)):
+            self.status['step_id'] = step_id
+            ori_image = data['ori_image']  # [bs, H, W, 3]
+            ori_image_shape = data['ori_image'].shape[1:3]
+            # ori_image_shape: [H, W]
+
+            input_shape = data['image'].shape[2:]
+            # input_shape: [h, w], before data transforms, set in model config
+
+            im_shape = data['im_shape'][0].numpy()
+            # im_shape: [new_h, new_w], after data transforms
+            scale_factor = data['scale_factor'][0].numpy()
+
+            empty_detections = False
+            # when it has no detected bboxes, will not inference reid model
+            # and if visualize, use original image instead
+
+            # forward
+            timer.tic()
+
+            outs = self.model.detector(data)
+            outs['bbox'] = outs['bbox'].numpy()
+            outs['bbox_num'] = outs['bbox_num'].numpy()
+
+            if len(outs['bbox']) > 0 and empty_detections == False:
+                # detector outputs: pred_cls_ids, pred_scores, pred_bboxes
+                pred_cls_ids = outs['bbox'][:, 0:1]
+                pred_scores = outs['bbox'][:, 1:2]
+                if not scaled:
+                    # Note: scaled=False only in JDE YOLOv3 or other detectors
+                    # with LetterBoxResize and JDEBBoxPostProcess.
+                    #
+                    # 'scaled' means whether the coords after detector outputs
+                    # have been scaled back to the original image, set True
+                    # in general detector, set False in JDE YOLOv3.
+                    pred_bboxes = scale_coords(outs['bbox'][:, 2:],
+                                               input_shape, im_shape,
+                                               scale_factor)
+                else:
+                    pred_bboxes = outs['bbox'][:, 2:]
+                pred_dets_old = np.concatenate(
+                    (pred_cls_ids, pred_scores, pred_bboxes), axis=1)
+            else:
+                logger.warning(
+                    'Frame {} has not detected object, try to modify score threshold.'.
+                    format(frame_id))
+                empty_detections = True
+
+            if not empty_detections:
+                pred_xyxys, keep_idx = clip_box(pred_bboxes, ori_image_shape)
+                if len(keep_idx[0]) == 0:
+                    logger.warning(
+                        'Frame {} has not detected object left after clip_box.'.
+                        format(frame_id))
+                    empty_detections = True
+
+            if empty_detections:
+                timer.toc()
+                # if visualize, use original image instead
+                online_ids, online_tlwhs, online_scores = None, None, None
+                save_object_pred_results(data, frame_id, online_ids, online_tlwhs,
+                                 online_scores, timer.average_time, show_image,
+                                 save_dir, self.cfg.num_classes, self.ids2names)
+                frame_id += 1
+                # thus will not inference reid model
+                continue
+
+            pred_cls_ids = pred_cls_ids[keep_idx[0]]
+            pred_scores = pred_scores[keep_idx[0]]
+            pred_dets = np.concatenate(
+                (pred_cls_ids, pred_scores, pred_xyxys), axis=1)
+
+            if use_reid:
+                crops = get_crops(
+                    pred_xyxys,
+                    ori_image,
+                    w=tracker.input_size[0],
+                    h=tracker.input_size[1])
+                crops = paddle.to_tensor(crops)
+
+                data.update({'crops': crops})
+                pred_embs = self.model(data)['embeddings'].numpy()
+            else:
+                pred_embs = None
+
+            # trick hyperparams only used for MOTChallenge (MOT17, MOT20) Test-set
+            tracker.track_buffer, tracker.conf_thres = get_trick_hyperparams(
+                seq_name, tracker.track_buffer, tracker.conf_thres)
+
+            results_buffer = len(results[0])
+            if results_buffer >= given_frame:
+                pred_frame_id = frame_id
+                # pred_dets_old: cat_id, score, xyxy_bbox
+                # search every track_id
+                tracked_tracks_list = tracker.tracked_tracks_dict[0]
+                tracked_id = []
+                for tracked_objcet in tracked_tracks_list:
+                    tracked_id.append(tracked_objcet.track_id)
+
+                tracked_id_center = {id:[] for id in tracked_id}
+                for k in range(given_frame):
+                    result = results[0][len(results[0])-given_frame+k]
+                    bbox = np.array(result[1])
+                    if len(bbox) ==0:
+                        continue
+                    bbox[:, 2] = bbox[:, 2] + bbox[:, 0]
+                    bbox[:, 3] = bbox[:, 3] + bbox[:, 1]
+                    center = np.array(((bbox[:, 0] + bbox[:, 2])/2, (bbox[:, 1] + bbox[:, 3])/2)).transpose(1, 0)
+                    ids = result[3]
+                    for index, id in enumerate(ids):
+                        if id in tracked_id_center.keys():
+                            tracked_id_center[id].append(center[index])
+
+                # check confirm id
+                confirm_tracked_id = []
+                for id in tracked_id_center:
+                    if len(tracked_id_center[id]) >1:
+                        confirm_tracked_id.append(id)
+
+                # update each id kalmanfilter
+                tracked_id_center_kalmanfilter = {id:KalmanPointTracker(point=np.array(tracked_id_center[id][0:1]).transpose(1, 0)) for id in confirm_tracked_id}
+                for id in confirm_tracked_id:
+                    id_center_list = tracked_id_center[id]
+                    for center_index in range(1, len(id_center_list)):
+                        center = np.array(id_center_list[center_index]).reshape(2, 1)
+                        tracked_id_center_kalmanfilter[id].update(center)
+                        tracked_id_center_kalmanfilter[id].predict()    # save history
+
+                # use each id kalmanfilter to predict
+
+                pred_results = defaultdict(list)
+                for k in range(pred_frame):
+                    online_center = defaultdict(list)
+                    online_scores = defaultdict(list)
+                    online_ids = defaultdict(list)
+                    for id in confirm_tracked_id:
+                        pred_center = tracked_id_center_kalmanfilter[id].predict()[:2]
+                        online_center[0].append(pred_center)
+                        online_scores[0].append(1.0)
+                        online_ids[0].append(id)
+
+                        # use pred_center update
+                        tracked_id_center_kalmanfilter[id].update(pred_center)
+
+                    pred_results[0].append((pred_frame_id+1, online_center[0],
+                                           online_scores[0], online_ids[0]))
+                    pred_frame_id = pred_frame_id + 1
+                total_pred_results[0].append(pred_results[0])
+
+
+            # bytetrack update
+            online_targets_dict = tracker.update(pred_dets_old, pred_embs)
+            online_tlwhs = defaultdict(list)
+            online_scores = defaultdict(list)
+            online_ids = defaultdict(list)
+            for cls_id in range(self.cfg.num_classes):
+                online_targets = online_targets_dict[cls_id]
+                for t in online_targets:
+                    tlwh = t.tlwh
+                    tid = t.track_id
+                    tscore = t.score
+                    if tlwh[2] * tlwh[3] <= tracker.min_box_area: continue
+                    if tracker.vertical_ratio > 0 and tlwh[2] / tlwh[
+                        3] > tracker.vertical_ratio:
+                        continue
+                    online_tlwhs[cls_id].append(tlwh)
+                    online_ids[cls_id].append(tid)
+                    online_scores[cls_id].append(tscore)
+                # save results
+                results[cls_id].append(
+                    (frame_id + 1, online_tlwhs[cls_id],
+                     online_scores[cls_id], online_ids[cls_id]))
+
+            results_buffer = len(results[0])
+            if results_buffer >=given_frame+pred_frame:
+                true_track_list = results[0][-pred_frame:]
+                pred_track_list = total_pred_results[0][-pred_frame]
+                pred_ids = pred_track_list[0][3]
+                id_pred_errod = {id: [] for id in pred_ids}
+                for pred_track, true_track in zip(pred_track_list, true_track_list):
+                    if len(pred_track[1])==0 or len(true_track[1])==0:
+                        continue
+
+                    bboxs = np.array(true_track[1])
+                    true_ids = np.array(true_track[3])
+                    pred_ids = np.array(pred_track[3])
+                    center_x = bboxs[:, 0] + bboxs[:, 2]/2
+                    center_y = bboxs[:, 1] + bboxs[:, 3]/2
+                    true_center_array = np.concatenate([center_x.reshape(-1, 1), center_y.reshape(-1, 1)],axis=-1)
+                    pred_center_array = np.array(pred_track[1]).squeeze(-1)
+
+                    # find same id corresponding track center
+                    for index, true_id in enumerate(true_ids):
+                        if true_id not in pred_ids:
+                            continue
+
+                        pred_center_index = np.where(pred_ids==true_id)[0]
+                        true_center = true_center_array[index]
+                        pred_center = pred_center_array[pred_center_index][0]
+                        error = np.sqrt((true_center[0]-pred_center[0])**2 + (true_center[1]-pred_center[1])**2)
+                        id_pred_errod[true_id].append(error)
+                error = []
+                for id in id_pred_errod:
+                    id_mean_error = np.array(id_pred_errod[id]).mean()
+                    error.append(id_mean_error)
+                ADE = np.nanmean(np.array(error))
+                total_ADE[0].append(ADE)
+
+            timer.toc()
+            if results_buffer > given_frame:
+                total_result = defaultdict(list)
+                total_result[0].extend(results[0])
+                total_result[0].extend(pred_results[0])
+                save_object_pred_results(data, frame_id, online_ids, online_tlwhs,
+                                 online_scores, timer.average_time, show_image,
+                                 save_dir, self.cfg.num_classes, self.ids2names, total_result, pred_frame=pred_frame, give_frame=given_frame)
+            else:
+                save_object_pred_results(data, frame_id, online_ids, online_tlwhs,
+                                         online_scores, timer.average_time, show_image,
+                                         save_dir, self.cfg.num_classes, self.ids2names, results, pred_frame=pred_frame,
+                                         give_frame=given_frame)
+            frame_id += 1
+
+
+        print('Total Pred ADE:{}'.format(np.nanmean(np.array(total_ADE[0]))))
+
+        return results, frame_id, timer.average_time, timer.calls
+
+
     def mot_evaluate(self,
                      data_root,
                      seqs,
@@ -617,7 +988,10 @@ class Tracker(object):
                         show_image=False,
                         scaled=False,
                         det_results_dir='',
-                        draw_threshold=0.5):
+                        draw_threshold=0.5,
+                        task='object_pred',
+                        given_frame=10,
+                        pred_frame=10):
         assert video_file is not None or image_dir is not None, \
             "--video_file or --image_dir should be set."
         assert video_file is None or os.path.isfile(video_file), \
@@ -661,16 +1035,8 @@ class Tracker(object):
             frame_rate = self.dataset.frame_rate
 
         with paddle.no_grad():
-            if model_type in MOT_ARCH_JDE:
-                results, nf, ta, tc = self._eval_seq_jde(
-                    dataloader,
-                    save_dir=save_dir,
-                    show_image=show_image,
-                    frame_rate=frame_rate,
-                    draw_threshold=draw_threshold)
-            elif model_type in MOT_ARCH_SDE:
-                results, nf, ta, tc = self._eval_seq_sde(
-                    dataloader,
+            if task == 'object_pred':
+                results, nf, ta, tc = self._eval_object_pred(dataloader,
                     save_dir=save_dir,
                     show_image=show_image,
                     frame_rate=frame_rate,
@@ -678,15 +1044,36 @@ class Tracker(object):
                     scaled=scaled,
                     det_file=os.path.join(det_results_dir,
                                           '{}.txt'.format(seq)),
-                    draw_threshold=draw_threshold)
-            elif model_type == 'CenterTrack':
-                results, nf, ta, tc = self._eval_seq_centertrack(
-                    dataloader,
-                    save_dir=save_dir,
-                    show_image=show_image,
-                    frame_rate=frame_rate)
+                    draw_threshold=draw_threshold,
+                    given_frame=given_frame,
+                    pred_frame=pred_frame)
             else:
-                raise ValueError(model_type)
+                if model_type in MOT_ARCH_JDE:
+                    results, nf, ta, tc = self._eval_seq_jde(
+                        dataloader,
+                        save_dir=save_dir,
+                        show_image=show_image,
+                        frame_rate=frame_rate,
+                        draw_threshold=draw_threshold)
+                elif model_type in MOT_ARCH_SDE:
+                    results, nf, ta, tc = self._eval_seq_sde(
+                        dataloader,
+                        save_dir=save_dir,
+                        show_image=show_image,
+                        frame_rate=frame_rate,
+                        seq_name=seq,
+                        scaled=scaled,
+                        det_file=os.path.join(det_results_dir,
+                                              '{}.txt'.format(seq)),
+                        draw_threshold=draw_threshold)
+                elif model_type == 'CenterTrack':
+                    results, nf, ta, tc = self._eval_seq_centertrack(
+                        dataloader,
+                        save_dir=save_dir,
+                        show_image=show_image,
+                        frame_rate=frame_rate)
+                else:
+                    raise ValueError(model_type)
 
         if save_videos:
             output_video_path = os.path.join(save_dir, '..',

@@ -110,6 +110,7 @@ class STrack(BaseTrack):
         self.track_len = 0
 
         self.kalman_filter = None
+        self.center_kalman_filter=None
         self.mean, self.covariance = None, None
         self.is_activated = False
 

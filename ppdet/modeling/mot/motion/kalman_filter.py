@@ -51,7 +51,7 @@ except:
     )
     pass
 
-__all__ = ['KalmanFilter']
+__all__ = ['KalmanFilter', 'KalmanPointTracker']
 """
 Table for the 0.95 quantile of the chi-square distribution with N degrees of
 freedom (contains values for N=1, ..., 9). Taken from MATLAB/Octave's chi2inv
@@ -69,7 +69,70 @@ chi2inv95 = {
     8: 15.507,
     9: 16.919
 }
+from filterpy.kalman import KalmanFilter
 
+
+class KalmanPointTracker(object):
+
+    def __init__(self, point):
+        # 定义恒速模型，4个状态变量，2个状态输入
+        self.kf = KalmanFilter(dim_x=4, dim_z=2)
+
+        # 状态向量 X = [点的横坐标，点的纵坐标, 点的vx速度，点的vy速度]
+        # 这里假设是x和y都是匀速运动
+        self.kf.F = np.array([
+            [1, 0, 1, 0],
+            [0, 1, 0, 1],
+            [0, 0, 1, 0],
+            [0, 0, 0, 1]
+        ])
+
+        # 观测矩阵
+        self.kf.H = np.array([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+        ])
+
+        # P是先验估计的协方差，对不可观察的初速度，给予高度不确定性
+        self.kf.P = np.array([
+            [10, 0, 0, 0],
+            [0, 10, 0, 0],
+            [0, 0, 1000, 0],
+            [0, 0, 0, 1000]
+        ])
+
+        # R是测量噪声的协方差矩阵，即真实值与测量值差的协方差
+        self.kf.R = np.array([
+            [10, 0],
+            [0, 10]
+        ])
+
+        # Q是系统状态变换误差的协方差, 一般认为系统误差很小
+        self.kf.Q = np.array([
+            [0.01, 0, 0, 0],
+            [0, 0.01, 0, 0],
+            [0, 0, 0.01, 0],
+            [0, 0, 0, 0.01]
+        ])
+
+        # Kalman滤波器初始化时，直接用第一次观测结果赋值状态信息
+        self.kf.x[0:2] = point
+        # 存储历史时刻的Kalman状态
+        self.history = []
+
+    def update(self, point):
+        # 调用更新后，清空历史
+        self.history = []
+        # 直接调用包里的更新参数
+        self.kf.update(point)
+
+    def predict(self):
+        # 库自带预测函数
+        self.kf.predict()
+        # 更新历史信息
+        self.history.append(self.kf.x)
+
+        return self.history[-1]
 
 class KalmanFilter(object):
     """
@@ -101,8 +164,13 @@ class KalmanFilter(object):
         # state estimate. These weights control the amount of uncertainty in
         # the model. This is a bit hacky.
         self._std_weight_position = 1. / 20
+        # self._std_weight_velocity = 1. / 160
         self._std_weight_velocity = 1. / 160
 
+        # self._motion_mat[0][4] = self._motion_mat[0][4] * 10
+        # self._motion_mat[1][5] = self._motion_mat[1][5] * 10
+        # self._motion_mat[2][6] = self._motion_mat[2][6] * 10
+        # self._motion_mat[3][7] = self._motion_mat[3][7] * 10
     def initiate(self, measurement):
         """
         Create track from unassociated measurement.

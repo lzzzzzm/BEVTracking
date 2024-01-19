@@ -136,6 +136,7 @@ def draw_bbox(image, im_id, catid2name, bboxes, threshold):
         tw, th = imagedraw_textsize_c(draw, text, font=font)
         draw.rectangle(
             [(xmin + 1, ymin - th), (xmin + tw + 1, ymin)], fill=color)
+        # cv2.rectangle(image, (xmin, ymin), (xmax, ymax), color=(0,0,0), thickness=2)
         draw.text((xmin + 1, ymin - th), text, fill=(255, 255, 255), font=font)
 
     return image

@@ -54,6 +54,8 @@ from .export_utils import _dump_infer_config, _prune_input_spec, apply_to_static
 from paddle.distributed.fleet.utils.hybrid_parallel_util import fused_allreduce_gradients
 
 from ppdet.utils.logger import setup_logger
+
+import json
 logger = setup_logger('ppdet.engine')
 
 __all__ = ['Trainer']
@@ -1046,6 +1048,7 @@ class Trainer(object):
             _m.accumulate()
             _m.reset()
 
+        json_dict = dict()
         if visualize:
             for outs in results:
                 batch_res = get_infer_results(outs, clsid2catid)
@@ -1072,6 +1075,8 @@ class Trainer(object):
                     image = visualize_results(
                         image, bbox_res, mask_res, segm_res, keypoint_res,
                         pose3d_res, int(im_id), catid2name, draw_threshold)
+
+                    json_dict[int(im_id)] = bbox_res
                     self.status['result_image'] = np.array(image.copy())
                     if self._compose_callback:
                         self._compose_callback.on_step_end(self.status)
@@ -1083,6 +1088,9 @@ class Trainer(object):
                     image.save(save_name, quality=95)
 
                     start = end
+        out_json_path = 'out.json'
+        with open(out_json_path, 'w') as f:
+            json.dump(json_dict, f)
         return results
 
     def _get_save_image_name(self, output_dir, image_path):

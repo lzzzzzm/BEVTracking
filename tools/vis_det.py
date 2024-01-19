@@ -10,15 +10,15 @@ def parse_args():
     parser.add_argument(
         '--vis_task', type=str, default='gt', help="visualization task, choose in [gt, det]")
     parser.add_argument(
-        '--vis_num', type=int, default=100, help="the number of visualization images, only work when vis_task is gt and det, -1 means all")
+        '--vis_num', type=int, default=10000, help="the number of visualization images, only work when vis_task is gt and det, -1 means all")
     parser.add_argument(
         '--pred_result', type=str, default='bbox.json', help="the det prediction result file path")
     parser.add_argument(
         '--filter_score', type=float, default=0.3, help="the score threshold for visualization")
     parser.add_argument(
-        '--show_img', type=bool, default=False, help="whether to show image")
+        '--show_img', type=bool, default=True, help="whether to show image")
     parser.add_argument(
-        '--write_img', type=bool, default=True, help="whether to wirte results")
+        '--write_img', type=bool, default=False, help="whether to wirte results")
     args = parser.parse_args()
     return args
 

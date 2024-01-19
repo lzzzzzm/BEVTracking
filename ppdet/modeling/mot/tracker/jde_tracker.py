@@ -19,7 +19,7 @@ import numpy as np
 from collections import defaultdict
 
 from ..matching import jde_matching as matching
-from ..motion import KalmanFilter
+from ..motion import KalmanFilter, KalmanPointTracker
 from .base_jde_tracker import TrackState, STrack
 from .base_jde_tracker import joint_stracks, sub_stracks, remove_duplicate_stracks
 
@@ -98,6 +98,7 @@ class JDETracker(object):
         self.input_size = input_size
         if motion == 'KalmanFilter':
             self.motion = KalmanFilter()
+        # self.point_motion = KalmanPointTracker()
         self.metric_type = metric_type
 
         self.frame_id = 0

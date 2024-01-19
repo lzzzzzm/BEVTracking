@@ -1,6 +1,6 @@
 worker_num: 4
-eval_height: &eval_height 640
-eval_width: &eval_width 640
+eval_height: &eval_height 768
+eval_width: &eval_width 768
 eval_size: &eval_size [*eval_height, *eval_width]
 
 TrainReader:
@@ -11,7 +11,8 @@ TrainReader:
     - RandomCrop: {}
     - RandomFlip: {}
   batch_transforms:
-    - BatchRandomResize: {target_size: [320, 352, 384, 416, 448, 480, 512, 544, 576, 608, 640, 672, 704, 736, 768], random_size: True, random_interp: True, keep_ratio: False}
+#    - BatchRandomResize: {target_size: [320, 352, 384, 416, 448, 480, 512, 544, 576, 608, 640, 672, 704, 736, 768], random_size: True, random_interp: True, keep_ratio: False}
+    - BatchRandomResize: {target_size: [512, 544, 576, 608, 640, 672, 704, 736, 768, 800], random_size: True, random_interp: True, keep_ratio: False}
     - NormalizeImage: {mean: [0., 0., 0.], std: [1., 1., 1.], norm_type: none}
     - Permute: {}
     - PadGT: {}
