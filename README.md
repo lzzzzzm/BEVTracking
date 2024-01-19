@@ -4,14 +4,9 @@
 
 This is the repository of BEVTracking to tackle the detection, tracking and prediction tasks in the Standford Drone Dataset.
 
-<table align="center">
-  <tr align="center">
-    <td align="center">Prediction Results</td>
-  </tr>
-  <tr align="center">
-    <td align="center"><img src="figures/output.gif" width=256 height=256></td>
-  </tr>
- </table>
+<center class="half">
+<img src="figures/output.gif" height="512px" width="521px"/>
+</center>
 
 ### Data
 
@@ -153,7 +148,7 @@ python deploy/python/infer.py --model_dir=output_inference/ppyoloe_plus_sod_crn_
 **step.7** Infer Pedestrain Prediction
 
 ```bash
---config=configs/smalldet/ppyoloe_plus_sod_crn_l_track_coco.yml -o weights=output/best_model/model.pdparams --image_dir $image_dir$ --save_images --scaled True --det_results_dir out_vis --output_dir out_mot --given_frame 10 --pred_frame 10
+python tools/infer_mot.py --config=configs/smalldet/ppyoloe_plus_sod_crn_l_track_coco.yml -o weights=output/best_model/model.pdparams --image_dir $image_dir$ --save_images --scaled True --det_results_dir out_vis --output_dir out_mot --given_frame 10 --pred_frame 10
 ``` 
 
 ### TODO LIST 
