@@ -11,7 +11,7 @@ Cython
 pycocotools
 setuptools
 Pillow
-
+filterpy
 # for MOT evaluation and inference
 lap
 motmetrics
