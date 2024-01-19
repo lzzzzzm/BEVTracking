@@ -2,6 +2,17 @@
 
 ### Introduction
 
+This is the repository of BEVTracking to tackle the detection, tracking and prediction tasks in the Standford Drone Dataset.
+
+<table align="center">
+  <tr align="center">
+    <td align="center">Prediction Results</td>
+  </tr>
+  <tr align="center">
+    <td align="center"><img src="figures/output.gif" width=256 height=256></td>
+  </tr>
+ </table>
+
 ### Data
 
 Standford Drone Dataset (SDD) is used in this project. The dataset can be downloaded from [here](https://cvgl.stanford.edu/projects/uav_data/).
