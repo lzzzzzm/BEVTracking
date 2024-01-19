@@ -2,11 +2,12 @@
 
 ### Introduction
 
-This is the repository of BEVTracking to tackle the detection, tracking and prediction tasks in the Standford Drone Dataset.
+This project is based on [PaddleDetection](https://github.com/PaddlePaddle/PaddleDetection). Which use to detect and track the pedestrian in the bird's eye view.
 
-<center class="half">
+
+<p align="center">
 <img src="figures/output.gif" height="512px" width="521px"/>
-</center>
+</p>>
 
 ### Data
 
@@ -51,12 +52,6 @@ We filter the dataset and remove the above mistakes, also, we add the miss boxes
 
 shown as below:
 
-[//]: # (<center class="half">)
-
-[//]: # (<img src="figures/ori_vis.gif" height="180px" width="256px"/>  <img src="figures/filter_vis.gif" height="180px" width="256px"/>)
-
-[//]: # (</center>)
-
 <table align="center">
   <tr align="center">
     <td align="center">Ori Dataset annotation</td>
@@ -68,6 +63,8 @@ shown as below:
   </tr>
  </table>
 
+But due to the time limitation, we won't open the filter dataset. If you want to contribute to this project, you can contact me.
+the following steps are based on the original dataset.
 
 ### Installation
 
@@ -158,6 +155,7 @@ python tools/infer_mot.py --config=configs/smalldet/ppyoloe_plus_sod_crn_l_track
 - [x] Pedestrian Detection
 - [x] Pedestrian Tracking Prediction
 - [x] Pedestrian Tracking Prediction analysis
+- [ ] Open Filter Dataset
 
 
 ### Citation
